@@ -1,0 +1,18 @@
+[package]
+name = "proxy_server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["tokio"] }
+hyper = { version = "1.6.0", features = ["full"] }
+hyper-util = "0.1.11"
+rand = "0.9.1"
+reqwest = "0.12.15"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tower = "0.5.2"
+tower-http = { version = "0.5", features = ["trace"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
