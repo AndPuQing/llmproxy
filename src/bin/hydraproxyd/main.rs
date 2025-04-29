@@ -106,6 +106,7 @@ async fn proxy(Extension(state): Extension<AppState>, req: Request) -> Response 
     let mut host_servers = servers
         .iter()
         .filter(|server| server.model_name == model_name);
+
     if host_servers.clone().count() == 0 {
         return (
             StatusCode::BAD_REQUEST,
@@ -113,6 +114,7 @@ async fn proxy(Extension(state): Extension<AppState>, req: Request) -> Response 
         )
             .into_response();
     }
+
     // Randomly select a server from the list of registered servers
     let host_server = host_servers
         .nth(rand::random_range(0..host_servers.clone().count()))
