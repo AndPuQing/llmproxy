@@ -1,5 +1,5 @@
 [package]
-name = "hydraproxy"
+name = "llmproxy"
 version = "0.1.0"
 edition = "2021"
 authors = ["PuQing <me@puqing.work>"]
@@ -9,17 +9,23 @@ readme = "README.md"
 keywords = ["llm", "proxy", "http"]
 
 [[bin]]
-name = "hydraproxyd"
-path = "src/bin/hydraproxyd/main.rs"
+name = "llmproxyd"
+path = "src/bin/llmproxyd/main.rs"
 
 [[bin]]
-name = "hydraproxy"
-path = "src/bin/hydraproxy/main.rs"
+name = "llmproxy"
+path = "src/bin/llmproxy/main.rs"
 
 [dependencies]
 axum = { version = "0.7", features = ["tokio"] }
-hyper = { version = "1.6.0", features = ["full"] }
-hyper-util = "0.1.11"
+hyper = { version = "1.6.0", features = ["client", "http1", "http2"] }
+hyper-util = { version = "0.1.11", features = [
+    "client",
+    "client-legacy",
+    "http1",
+    "http2",
+    "tokio",
+] }
 rand = "0.9.1"
 reqwest = { version = "0.12.15", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
@@ -28,7 +34,7 @@ tokio = { version = "1", features = ["full"] }
 tower = "0.5.2"
 tower-http = { version = "0.5", features = ["trace"] }
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 clap = { version = "4", features = ["derive"] }
 
 
@@ -37,3 +43,7 @@ strip = true
 opt-level = "z"
 lto = true
 codegen-units = 1
+
+[dev-dependencies]
+httptest = "0.16.3"
+mime = "0.3.17"
