@@ -6,14 +6,13 @@ use axum::{
     Json, Router,
 };
 use clap::Parser;
-use clap_verbosity_flag::{InfoLevel, Verbosity};
+use clap_verbosity_flag::Verbosity;
 use hyper::Uri;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use rand::Rng;
 use serde::Deserialize;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, Debug)]
 struct ProxyServer {
