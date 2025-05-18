@@ -1,6 +1,6 @@
 [package]
 name = "llmproxy"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["PuQing <me@puqing.work>"]
 description = "A simple HTTP proxy server for llm api requests"
@@ -36,6 +36,7 @@ tower-http = { version = "0.5", features = ["trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 clap = { version = "4", features = ["derive"] }
+clap-verbosity-flag = { version = "3.0.2", features = ["tracing"] }
 
 
 [profile.release]

@@ -182,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn check_server_status(client: &Client) -> Result<(), Box<dyn std::error::Error>> {
-    let url = format!("{BASE_URL}/health" );
+    let url = format!("{BASE_URL}/health");
     let _response = client.get(&url).send().await?;
 
     Ok(())

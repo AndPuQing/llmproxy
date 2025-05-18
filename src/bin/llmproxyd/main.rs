@@ -5,7 +5,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-
+use clap::Parser;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
 use hyper::Uri;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use rand::Rng;
@@ -37,20 +38,24 @@ struct ModelExtractPayload {
     model: Option<String>,
 }
 
+#[derive(Parser)]
+#[command(author, version, about)]
+struct Cli {
+    #[command(flatten)]
+    verbosity: Verbosity,
+
+    #[arg(short, long, default_value = "11450")]
+    port: u16,
+
+    #[arg(short, long, default_value = "0.0.0.0")]
+    host: String,
+}
+
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                // Fallback to a default filter if RUST_LOG is not set
-                format!(
-                    "{}=info,tower_http=debug,vllm_proxy=trace", // Added crate name for specific trace
-                    env!("CARGO_PKG_NAME").replace('-', "_")     // Use CARGO_PKG_NAME
-                )
-                .into()
-            }),
-        )
-        .with(tracing_subscriber::fmt::layer())
+    let cli = Cli::parse();
+    tracing_subscriber::fmt()
+        .with_max_level(cli.verbosity)
         .init();
 
     let http_client = Client::builder(TokioExecutor::new())
@@ -76,7 +81,7 @@ async fn main() {
         .merge(proxy_router)
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:11450")
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", cli.host, cli.port))
         .await
         .unwrap();
     tracing::info!("Listening on {}", listener.local_addr().unwrap());
