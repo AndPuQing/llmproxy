@@ -146,7 +146,7 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
                 .into_response();
         }
     };
-    tracing::debug!("Extracted model name: {}", model_name);
+    tracing::debug!("Extracted model name: {model_name}");
 
     let candidate_servers: Vec<&ProxyServer> = servers_guard
         .iter()
@@ -154,10 +154,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
         .collect();
 
     if candidate_servers.is_empty() {
-        tracing::warn!("No server registered for model: {}", model_name);
+        tracing::warn!("No server registered for model: {model_name}");
         return (
             StatusCode::BAD_REQUEST, // Or NOT_FOUND
-            Json(serde_json::json!({"error": format!("No server registered for model: {}", model_name)})),
+            Json(serde_json::json!({"error": format!("No server registered for model: {model_name}")})),
         )
             .into_response();
     }
