@@ -74,15 +74,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 status
                             );
                         }
+                    } else if let Some(err_msg) = parsed_response.error {
+                        println!("Failed ({}): {}", status, err_msg);
                     } else {
-                        if let Some(err_msg) = parsed_response.error {
-                            println!("Failed ({}): {}", status, err_msg);
-                        } else {
-                            println!(
-                                "Failed ({}). Server sent an unexpected JSON error structure.",
-                                status
-                            );
-                        }
+                        println!(
+                            "Failed ({}). Server sent an unexpected JSON error structure.",
+                            status
+                        );
                     }
                 }
                 Err(e) => {
@@ -124,15 +122,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 status
                             );
                         }
+                    } else if let Some(err_msg) = parsed_response.error {
+                        println!("Failed ({}): {}", status, err_msg);
                     } else {
-                        if let Some(err_msg) = parsed_response.error {
-                            println!("Failed ({}): {}", status, err_msg);
-                        } else {
-                            println!(
-                                "Failed ({}). Server sent an unexpected JSON error structure.",
-                                status
-                            );
-                        }
+                        println!(
+                            "Failed ({}). Server sent an unexpected JSON error structure.",
+                            status
+                        );
                     }
                 }
                 Err(e) => {
