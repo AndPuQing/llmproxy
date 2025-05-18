@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return Ok(());
             }
 
-            let url = format!("{}/register", BASE_URL);
+            let url = format!("{BASE_URL}/register");
             let response = client
                 .post(&url)
                 .json(&serde_json::json!({ "addr": &addr, "model_name": &model_name }))
@@ -64,10 +64,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(parsed_response) => {
                     if status.is_success() {
                         if let Some(msg) = parsed_response.message {
-                            println!("Success ({}): {}", status, msg);
+                            println!("Success ({status}): {msg}");
                         } else if let Some(err_msg) = parsed_response.error {
                             // Server might return 200 OK but with an error field if API is unusual
-                            println!("Server reported error ({}): {}", status, err_msg);
+                            println!("Server reported error ({status}): {err_msg}");
                         } else {
                             println!(
                                 "Registered ({}). Server sent an unexpected JSON structure.",
@@ -75,19 +75,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             );
                         }
                     } else if let Some(err_msg) = parsed_response.error {
-                        println!("Failed ({}): {}", status, err_msg);
+                        println!("Failed ({status}): {err_msg}");
                     } else {
                         println!(
-                            "Failed ({}). Server sent an unexpected JSON error structure.",
-                            status
+                            "Failed ({status}). Server sent an unexpected JSON error structure."
                         );
                     }
                 }
                 Err(e) => {
-                    println!(
-                        "Failed to parse server response (Status: {}). Error: {}.",
-                        status, e,
-                    );
+                    println!("Failed to parse server response (Status: {status}). Error: {e}.");
                 }
             }
         }
@@ -98,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return Ok(());
             }
 
-            let url = format!("{}/unregister", BASE_URL);
+            let url = format!("{BASE_URL}/unregister");
             // The backend /unregister endpoint expects RegisterRequest, so it needs model_name.
             // Since the server logic for unregister doesn't use model_name, we send an empty one.
             // The server's unregister handler does not validate model_name for emptiness.
@@ -113,28 +109,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(parsed_response) => {
                     if status.is_success() {
                         if let Some(msg) = parsed_response.message {
-                            println!("Success ({}): {}", status, msg);
+                            println!("Success ({status}): {msg}");
                         } else if let Some(err_msg) = parsed_response.error {
-                            println!("Server reported error ({}): {}", status, err_msg);
+                            println!("Server reported error ({status}): {err_msg}");
                         } else {
                             println!(
-                                "Unregistered ({}). Server sent an unexpected JSON structure.",
-                                status
+                                "Unregistered ({status}). Server sent an unexpected JSON structure."
+                                
                             );
                         }
                     } else if let Some(err_msg) = parsed_response.error {
-                        println!("Failed ({}): {}", status, err_msg);
+                        println!("Failed ({status}): {err_msg}" );
                     } else {
                         println!(
-                            "Failed ({}). Server sent an unexpected JSON error structure.",
-                            status
+                            "Failed ({status}). Server sent an unexpected JSON error structure."
+                            
                         );
                     }
                 }
                 Err(e) => {
                     println!(
-                        "Failed to parse server response (Status: {}). Error: {}.",
-                        status, e,
+                        "Failed to parse server response (Status: {status}). Error: {e}."
                     );
                 }
             }
@@ -145,7 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!("Make sure the server is running.");
                 return Ok(());
             }
-            let url = format!("{}/list", BASE_URL);
+            let url = format!("{BASE_URL}/list");
             let response = client.get(&url).send().await?;
 
             let status = response.status();
@@ -187,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn check_server_status(client: &Client) -> Result<(), Box<dyn std::error::Error>> {
-    let url = format!("{}/health", BASE_URL);
+    let url = format!("{BASE_URL}/health" );
     let _response = client.get(&url).send().await?;
 
     Ok(())

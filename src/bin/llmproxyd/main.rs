@@ -185,12 +185,12 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
     let host = target_addr
         .trim_start_matches("http://")
         .trim_start_matches("https://");
-    let target_uri_str = format!("{}{}{}", scheme, host, path_and_query);
+    let target_uri_str = format!("{scheme}{host}{path_and_query}");
 
     let target_uri: Uri = match target_uri_str.parse() {
         Ok(uri) => uri,
         Err(e) => {
-            tracing::error!("Failed to parse target URI '{}': {}", target_uri_str, e);
+            tracing::error!("Failed to parse target URI '{target_uri_str}': {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": "Failed to construct target URI"})),
