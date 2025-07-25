@@ -8,6 +8,9 @@ license = "MIT"
 readme = "README.md"
 keywords = ["llm", "proxy", "http"]
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name = "llmproxyd"
 path = "src/bin/llmproxyd/main.rs"

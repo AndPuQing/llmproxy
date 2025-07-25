@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
-use reqwest::Client;
-use serde::Deserialize;
+use llmproxy::client::Client;
 
 const BASE_URL: &str = "http://127.0.0.1:11450";
 
@@ -32,158 +31,20 @@ enum Commands {
     List,
 }
 
-// To parse responses like {"message": "..."} or {"error": "..."}
-#[derive(Deserialize, Debug)]
-struct ServerResponse {
-    message: Option<String>,
-    error: Option<String>,
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
-    let client = Client::new();
+    let client = Client::new(BASE_URL.to_string());
 
-    match args.command {
-        Commands::Register { model_name, addr } => {
-            // Check if the server is running before sending requests
-            if let Err(_e) = check_server_status(&client).await {
-                eprintln!("Make sure the server is running.");
-                return Ok(());
-            }
+    let result = match args.command {
+        Commands::Register { model_name, addr } => client.register(model_name, addr).await,
+        Commands::Unregister { addr } => client.unregister(addr).await,
+        Commands::List => client.list().await,
+    };
 
-            let url = format!("{BASE_URL}/register");
-            let response = client
-                .post(&url)
-                .json(&serde_json::json!({ "addr": &addr, "model_name": &model_name }))
-                .send()
-                .await?;
-
-            let status = response.status();
-            match response.json::<ServerResponse>().await {
-                Ok(parsed_response) => {
-                    if status.is_success() {
-                        if let Some(msg) = parsed_response.message {
-                            println!("Success ({status}): {msg}");
-                        } else if let Some(err_msg) = parsed_response.error {
-                            // Server might return 200 OK but with an error field if API is unusual
-                            println!("Server reported error ({status}): {err_msg}");
-                        } else {
-                            println!(
-                                "Registered ({}). Server sent an unexpected JSON structure.",
-                                status
-                            );
-                        }
-                    } else if let Some(err_msg) = parsed_response.error {
-                        println!("Failed ({status}): {err_msg}");
-                    } else {
-                        println!(
-                            "Failed ({status}). Server sent an unexpected JSON error structure."
-                        );
-                    }
-                }
-                Err(e) => {
-                    println!("Failed to parse server response (Status: {status}). Error: {e}.");
-                }
-            }
-        }
-        Commands::Unregister { addr } => {
-            // Check if the server is running before sending requests
-            if let Err(_e) = check_server_status(&client).await {
-                eprintln!("Make sure the server is running.");
-                return Ok(());
-            }
-
-            let url = format!("{BASE_URL}/unregister");
-            // The backend /unregister endpoint expects RegisterRequest, so it needs model_name.
-            // Since the server logic for unregister doesn't use model_name, we send an empty one.
-            // The server's unregister handler does not validate model_name for emptiness.
-            let response = client
-                .post(&url)
-                .json(&serde_json::json!({ "model_name": "", "addr": &addr }))
-                .send()
-                .await?;
-
-            let status = response.status();
-            match response.json::<ServerResponse>().await {
-                Ok(parsed_response) => {
-                    if status.is_success() {
-                        if let Some(msg) = parsed_response.message {
-                            println!("Success ({status}): {msg}");
-                        } else if let Some(err_msg) = parsed_response.error {
-                            println!("Server reported error ({status}): {err_msg}");
-                        } else {
-                            println!(
-                                "Unregistered ({status}). Server sent an unexpected JSON structure."
-                                
-                            );
-                        }
-                    } else if let Some(err_msg) = parsed_response.error {
-                        println!("Failed ({status}): {err_msg}" );
-                    } else {
-                        println!(
-                            "Failed ({status}). Server sent an unexpected JSON error structure."
-                            
-                        );
-                    }
-                }
-                Err(e) => {
-                    println!(
-                        "Failed to parse server response (Status: {status}). Error: {e}."
-                    );
-                }
-            }
-        }
-        Commands::List => {
-            // Check if the server is running before sending requests
-            if let Err(_e) = check_server_status(&client).await {
-                eprintln!("Make sure the server is running.");
-                return Ok(());
-            }
-            let url = format!("{BASE_URL}/list");
-            let response = client.get(&url).send().await?;
-
-            let status = response.status();
-            if status.is_success() {
-                // The backend returns a Vec<String> for /list
-                let server_list = response.json::<Vec<String>>().await?;
-                if server_list.is_empty() {
-                    println!("No model services registered.");
-                } else {
-                    println!("Registered model services ({}):", server_list.len());
-                    for item in server_list {
-                        println!("  - {}", item);
-                    }
-                }
-            } else {
-                // Try to parse error if any
-                match response.json::<ServerResponse>().await {
-                    Ok(parsed_error) => {
-                        if let Some(err_msg) = parsed_error.error {
-                            println!("Failed to list services ({}): {}", status, err_msg);
-                        } else {
-                            println!(
-                                "Failed to list services ({}). Unexpected JSON error format.",
-                                status
-                            );
-                        }
-                    }
-                    Err(e) => {
-                        println!(
-                            "Failed to parse server response (Status: {}). Error: {}.",
-                            status, e,
-                        );
-                    }
-                }
-            }
-        }
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
     }
-    Ok(())
-}
-
-async fn check_server_status(client: &Client) -> Result<(), Box<dyn std::error::Error>> {
-    let url = format!("{BASE_URL}/health");
-    let _response = client.get(&url).send().await?;
 
     Ok(())
 }
