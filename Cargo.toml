@@ -1,6 +1,6 @@
 [package]
 name = "llmproxy"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["PuQing <me@puqing.work>"]
 description = "A simple HTTP proxy server for llm api requests"
