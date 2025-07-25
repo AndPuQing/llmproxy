@@ -1,4 +1,6 @@
-use crate::models::{ModelExtractPayload, RegisterRequest};
+use crate::models::{
+    ModelExtractPayload, ProxyServerInfo, RegisterRequest, ResponseStatus, ServerResponse,
+};
 use axum::{
     extract::{Request, State},
     http::StatusCode,
@@ -68,7 +70,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
         tracing::warn!("No vLLM servers registered.");
         return (
             StatusCode::SERVICE_UNAVAILABLE,
-            Json(serde_json::json!({"error": "No vLLM servers registered"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: "No vLLM servers registered".to_string(),
+            }),
         )
             .into_response();
     }
@@ -81,7 +86,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
             tracing::error!("Failed to read request body: {}", e);
             return (
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Failed to read request body"})),
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: "Failed to read request body".to_string(),
+                }),
             )
                 .into_response();
         }
@@ -93,7 +101,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
             tracing::warn!("Failed to parse JSON body for model extraction: {}", e);
             return (
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid JSON body", "details": e.to_string()})),
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: format!("Invalid JSON body: {}", e),
+                }),
             )
                 .into_response();
         }
@@ -105,7 +116,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
             tracing::warn!("Model name missing or empty in request body.");
             return (
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Model name is required in the request body"})),
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: "Model name is required in the request body".to_string(),
+                }),
             )
                 .into_response();
         }
@@ -121,9 +135,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
         tracing::warn!("No server registered for model: {model_name}");
         return (
             StatusCode::BAD_REQUEST, // Or NOT_FOUND
-            Json(
-                serde_json::json!({"error": format!("No server registered for model: {model_name}")}),
-            ),
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: format!("No server registered for model: {model_name}"),
+            }),
         )
             .into_response();
     }
@@ -157,7 +172,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
             tracing::error!("Failed to parse target URI '{target_uri_str}': {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to construct target URI"})),
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: "Failed to construct target URI".to_string(),
+                }),
             )
                 .into_response();
         }
@@ -182,7 +200,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
             tracing::error!("Failed to build proxy request: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to build proxy request"})),
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: "Failed to build proxy request".to_string(),
+                }),
             )
                 .into_response();
         }
@@ -199,7 +220,10 @@ async fn proxy_request_handler(State(state): State<AppState>, original_req: Requ
             tracing::error!("Error forwarding request to {}: {}", target_addr, err);
             (
                 StatusCode::BAD_GATEWAY,
-                Json(serde_json::json!({"error": format!("Error forwarding request: {}", err)})),
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: format!("Error forwarding request: {}", err),
+                }),
             )
                 .into_response()
         }
@@ -219,14 +243,20 @@ async fn register_server(
         );
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "Invalid address format. Expected host:port"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: "Invalid address format. Expected host:port".to_string(),
+            }),
         );
     }
     if payload.model_name.trim().is_empty() {
         tracing::warn!("Empty model_name provided for registration");
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "model_name cannot be empty"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: "model_name cannot be empty".to_string(),
+            }),
         );
     }
 
@@ -244,7 +274,10 @@ async fn register_server(
         );
         return (
             StatusCode::OK,
-            Json(serde_json::json!({"message": "Server already registered"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Warning,
+                message: "Server already registered".to_string(),
+            }),
         );
     }
 
@@ -260,7 +293,10 @@ async fn register_server(
 
     (
         StatusCode::CREATED,
-        Json(serde_json::json!({"message": "Server registered successfully"})),
+        Json(ServerResponse {
+            status: ResponseStatus::Success,
+            message: "Server registered successfully".to_string(),
+        }),
     )
 }
 
@@ -277,7 +313,10 @@ async fn unregister_server(
         );
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "Invalid address format. Expected host:port"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: "Invalid address format. Expected host:port".to_string(),
+            }),
         );
     }
 
@@ -288,13 +327,19 @@ async fn unregister_server(
         tracing::info!("Unregistered server: addr={}", server_addr);
         (
             StatusCode::OK,
-            Json(serde_json::json!({"message": "Server unregistered successfully"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Success,
+                message: "Server unregistered successfully".to_string(),
+            }),
         )
     } else {
         tracing::warn!("Server not found for unregistration: addr={}", server_addr);
         (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({"error": "Server not found"})),
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: "Server not found".to_string(),
+            }),
         )
     }
 }
@@ -302,9 +347,12 @@ async fn unregister_server(
 async fn list_servers(State(state): State<AppState>) -> impl IntoResponse {
     let servers = state.servers.lock().await;
 
-    let server_list_display: Vec<String> = servers
+    let server_list_display: Vec<ProxyServerInfo> = servers
         .iter()
-        .map(|server| format!("Model: {}, Addr: {}", server.model_name, server.addr))
+        .map(|server| ProxyServerInfo {
+            model_name: server.model_name.clone(),
+            addr: server.addr.clone(),
+        })
         .collect();
     Json(server_list_display)
 }
@@ -355,5 +403,49 @@ mod tests {
         assert_eq!(servers[0].addr, "localhost:8001");
     }
 
-    // ... (all other tests from llmproxyd/main.rs)
+    #[tokio::test]
+    async fn test_register_server_already_exists() {
+        let state = test_app_state();
+        let app = app(state.clone());
+
+        let payload = RegisterRequest {
+            model_name: "test_model".to_string(),
+            addr: "localhost:8001".to_string(),
+        };
+
+        // First registration
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/register")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // Second registration
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(http::Method::POST)
+                    .uri("/register")
+                    .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let server_response: ServerResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(server_response.status, ResponseStatus::Warning);
+        assert_eq!(server_response.message, "Server already registered");
+    }
 }

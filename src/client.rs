@@ -1,4 +1,5 @@
-use crate::models::{RegisterRequest, ServerResponse};
+use crate::models::{ProxyServerInfo, RegisterRequest, ResponseStatus, ServerResponse};
+use colored::*;
 use reqwest::Client as ReqwestClient;
 use reqwest::StatusCode;
 
@@ -65,14 +66,24 @@ impl Client {
 
         let status = response.status();
         if status.is_success() {
-            let server_list: Vec<String> = response.json().await?;
+            let server_list: Vec<ProxyServerInfo> = response.json().await?;
             if server_list.is_empty() {
                 println!("No model services registered.");
             } else {
-                println!("Registered model services ({}):", server_list.len());
-                for item in server_list {
-                    println!("  - {item}");
+                let mut table = comfy_table::Table::new();
+                table
+                    .set_header(vec!["#", "Model", "Address"])
+                    .load_preset(comfy_table::presets::UTF8_FULL_CONDENSED)
+                    .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
+
+                for (index, server) in server_list.iter().enumerate() {
+                    table.add_row(vec![
+                        (index + 1).to_string(),
+                        server.model_name.clone(),
+                        server.addr.clone(),
+                    ]);
                 }
+                println!("{table}");
             }
         } else {
             handle_error_response(status, response).await?;
@@ -83,15 +94,22 @@ impl Client {
 
 async fn handle_response(response: reqwest::Response) -> Result<(), Box<dyn std::error::Error>> {
     let status = response.status();
+    let parsed_response: ServerResponse = response.json().await?;
+
     if status.is_success() {
-        let parsed_response: ServerResponse = response.json().await?;
-        if let Some(msg) = parsed_response.message {
-            println!("Success ({status}): {msg}");
-        } else {
-            println!("Operation successful ({status}), but no message received.");
+        match parsed_response.status {
+            ResponseStatus::Success => println!("✔ {}", parsed_response.message.green()),
+            ResponseStatus::Warning => println!("⚠ {}", parsed_response.message.yellow()),
+            ResponseStatus::Error => {
+                println!("✖ {} ({})", parsed_response.message.red(), status)
+            }
         }
     } else {
-        handle_error_response(status, response).await?;
+        println!(
+            "✖ {} ({})",
+            parsed_response.message.red(),
+            status
+        );
     }
     Ok(())
 }
@@ -100,17 +118,11 @@ async fn handle_error_response(
     status: StatusCode,
     response: reqwest::Response,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    match response.json::<ServerResponse>().await {
-        Ok(parsed_error) => {
-            if let Some(err_msg) = parsed_error.error {
-                println!("Failed ({status}): {err_msg}");
-            } else {
-                println!("Failed ({status}). Unexpected JSON error format.");
-            }
-        }
-        Err(_) => {
-            println!("Failed ({status}). Could not parse error response.");
-        }
-    }
+    let error_text = response.text().await?;
+    println!(
+        "✖ {} ({})",
+        format!("Could not parse error response: {}", error_text).red(),
+        status
+    );
     Ok(())
 }

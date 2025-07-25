@@ -40,6 +40,8 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 clap = { version = "4", features = ["derive"] }
 clap-verbosity-flag = { version = "3.0.2", features = ["tracing"] }
+comfy-table = "7.1.1"
+colored = "2.1.0"
 
 
 [profile.release]
