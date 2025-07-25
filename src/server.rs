@@ -316,8 +316,6 @@ mod tests {
         body::Body,
         http::{self, Request, StatusCode},
     };
-    use httptest::{matchers::*, responders::*, Expectation, ServerPool};
-    use serde_json::json;
     use tower::ServiceExt;
 
     fn test_app_state() -> AppState {
@@ -327,8 +325,6 @@ mod tests {
             http_client,
         }
     }
-
-    static SERVER_POOL: ServerPool = ServerPool::new(10);
 
     #[tokio::test]
     async fn test_register_server_ok() {

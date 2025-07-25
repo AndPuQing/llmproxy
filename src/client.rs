@@ -17,11 +17,19 @@ impl Client {
 
     async fn check_server_status(&self) -> Result<(), reqwest::Error> {
         let url = format!("{}/health", self.base_url);
-        self.http_client.get(&url).send().await?.error_for_status()?;
+        self.http_client
+            .get(&url)
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(())
     }
 
-    pub async fn register(&self, model_name: String, addr: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn register(
+        &self,
+        model_name: String,
+        addr: String,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.check_server_status().await?;
         let url = format!("{}/register", self.base_url);
         let response = self
@@ -63,7 +71,7 @@ impl Client {
             } else {
                 println!("Registered model services ({}):", server_list.len());
                 for item in server_list {
-                    println!("  - {}", item);
+                    println!("  - {item}");
                 }
             }
         } else {
