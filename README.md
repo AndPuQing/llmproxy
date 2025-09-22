@@ -12,8 +12,8 @@ A command-line interface (CLI) to interact with the Model Service Orchestrator/P
 ## Features
 
 *   **Register:** Register a new model service (e.g., a vLLM instance) with the orchestrator, specifying its model name and address.
-*   **Unregister:** Remove a previously registered model service from the orchestrator using its address.
-*   **List:** Display all currently registered model services, showing their model names and addresses.
+*   **Unregister:** Remove a previously registered model service from the orchestrator using its index number or address.
+*   **List:** Display all currently registered model services in a clean table format with index numbers for easy reference.
 
 ## Prerequisites
 
@@ -74,40 +74,45 @@ Registers a new model service with the orchestrator.
 **Expected Output (Success):**
 
 ```
-Success (201 Created): Server registered successfully
-```
-or if already registered:
-```
-Success (200 OK): Server already registered
+✔ Registered meta-llama/Llama-2-7b-chat-hf at 127.0.0.1:8001
 ```
 
 #### 2. `unregister`
 
-Unregisters an existing model service from the orchestrator using its address.
+Unregisters an existing model service from the orchestrator using its index number or address.
 
-**Options:**
+**Arguments:**
 
-*   `--addr <ADDR>`: The address (host:port) of the model service to unregister (e.g., "127.0.0.1:8001"). (Required)
+*   `<TARGET>`: Service index (e.g., 1, 2, 3) or address (e.g., localhost:8001). (Required)
 
-**Example:**
+**Examples:**
 
 ```bash
-./target/debug/llmproxy unregister --addr "127.0.0.1:8001"
+# Unregister by index number (most convenient)
+./target/debug/llmproxy unregister 1
+
+# Unregister by address (backward compatible)
+./target/debug/llmproxy unregister "127.0.0.1:8001"
 ```
 
 **Expected Output (Success):**
 
 ```
-Success (200 OK): Server unregistered successfully
+✔ Unregistered service #1 (127.0.0.1:8001)
 ```
-or if not found:
+or:
 ```
-Failed (404 Not Found): Server not found
+✔ Unregistered service at 127.0.0.1:8001
+```
+
+**Error Examples:**
+```
+✖ Index 5 not found. Only 2 services are registered.
 ```
 
 #### 3. `list`
 
-Lists all currently registered model services.
+Lists all currently registered model services in a clean table format with index numbers.
 
 **Example:**
 
@@ -118,13 +123,22 @@ Lists all currently registered model services.
 **Expected Output:**
 
 ```
-Registered model services (2):
-  - Model: Qwen/Qwen2-7B-Instruct, Addr: 127.0.0.1:8001
-  - Model: Llama3-8B, Addr: 127.0.0.1:8002
+✔ 2 registered services
+
+Label  Model                          Address
+#1     meta-llama/Llama-2-7b-chat-hf  10.150.10.75:18012
+#2     Qwen/Qwen2-7B-Instruct         127.0.0.1:8001
+
+💡 You can unregister services by index or address:
+  → llmproxy unregister 1
+  → llmproxy unregister "localhost:8001"
 ```
-or if none are registered:
+
+**When no services are registered:**
+
 ```
-No model services registered.
+ℹ No model services are currently registered
+  → Use llmproxy register --model-name <MODEL> --addr <ADDRESS> to register a new service
 ```
 
 ## Backend Server
@@ -140,6 +154,14 @@ cargo run --release --bin llmproxyd
 ## Troubleshooting
 
 *   **Connection Refused:** Ensure the backend server is running and accessible at `http://127.0.0.1:11450` (or the configured address if you modify the `BASE_URL` in the CLI source).
-*   **Unexpected JSON Errors:** Verify that the backend server's API responses match what the CLI expects.
-*   **`Failed to parse server response`:** This could indicate an issue with the server's response format or a network problem. The CLI will attempt to print the raw body which might give clues.
+    ```
+    ✖ Cannot connect to llmproxyd server
+      → Make sure the server is running on http://127.0.0.1:11450
+      → Start it with: llmproxyd
+    ```
+*   **Invalid Index:** When using numeric indices, ensure they are within the valid range:
+    ```
+    ✖ Index 5 not found. Only 2 services are registered.
+    ```
+*   **Server Errors:** The CLI provides clear error messages with context and suggestions for resolution.
 
