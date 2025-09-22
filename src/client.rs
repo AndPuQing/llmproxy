@@ -89,7 +89,7 @@ impl Client {
             .map_err(|_| format!("Invalid index '{}'", index_str))?;
 
         if index == 0 {
-            return Err(format!("Service indices start from 1, not 0").into());
+            return Err("Service indices start from 1, not 0".to_string().into());
         }
 
         // Get the current list of services

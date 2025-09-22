@@ -42,13 +42,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     if let Err(e) = result {
-        handle_error(&e, &command);
+        handle_error(&*e, &command);
     }
 
     Ok(())
 }
 
-fn handle_error(e: &Box<dyn std::error::Error>, command: &Commands) {
+fn handle_error(e: &dyn std::error::Error, command: &Commands) {
     let error_msg = e.to_string();
 
     if error_msg.contains("Connection refused")
