@@ -46,20 +46,68 @@ impl Client {
         handle_response(response, Some(&format!("Registered {} at {}", model_name, addr))).await
     }
 
-    pub async fn unregister(&self, addr: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn unregister(&self, target: String) -> Result<(), Box<dyn std::error::Error>> {
         self.check_server_status().await?;
+
+        // Check if the input is a number (index) or an address
+        let actual_addr = if target.parse::<usize>().is_ok() {
+            self.resolve_index_to_address(&target).await?
+        } else {
+            target.clone()
+        };
+
         let url = format!("{}/unregister", self.base_url);
         let response = self
             .http_client
             .post(&url)
             .json(&RegisterRequest {
                 model_name: "".to_string(), // The server doesn't use this for unregistering
-                addr: addr.clone(),
+                addr: actual_addr.clone(),
             })
             .send()
             .await?;
 
-        handle_response(response, Some(&format!("Unregistered service at {}", addr))).await
+        let context = if target.parse::<usize>().is_ok() {
+            format!("Unregistered service #{} ({})", target, actual_addr)
+        } else {
+            format!("Unregistered service at {}", actual_addr)
+        };
+
+        handle_response(response, Some(&context)).await
+    }
+
+    async fn resolve_index_to_address(&self, index_str: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let index: usize = index_str.parse()
+            .map_err(|_| format!("Invalid index '{}'", index_str))?;
+
+        if index == 0 {
+            return Err(format!("Service indices start from 1, not 0").into());
+        }
+
+        // Get the current list of services
+        let url = format!("{}/list", self.base_url);
+        let response = self.http_client.get(&url).send().await?;
+
+        if !response.status().is_success() {
+            return Err("Failed to retrieve service list to resolve index".into());
+        }
+
+        let server_list: Vec<ProxyServerInfo> = response.json().await?;
+
+        if server_list.is_empty() {
+            return Err("No services are registered".into());
+        }
+
+        if index > server_list.len() {
+            return Err(format!(
+                "Index {} not found. Only {} service{} registered.",
+                index,
+                server_list.len(),
+                if server_list.len() == 1 { " is" } else { "s are" }
+            ).into());
+        }
+
+        Ok(server_list[index - 1].addr.clone())
     }
 
     pub async fn list(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -87,20 +135,49 @@ impl Client {
                 );
                 println!();
 
-                let mut table = comfy_table::Table::new();
-                table
-                    .set_header(vec!["#", "Model", "Address"])
-                    .load_preset(comfy_table::presets::UTF8_FULL_CONDENSED)
-                    .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS);
+                // Calculate column widths
+                let label_width = 5; // "Label"
+                let mut model_width = 5; // "Model"
+                let mut addr_width = 7; // "Address"
 
-                for (index, server) in server_list.iter().enumerate() {
-                    table.add_row(vec![
-                        (index + 1).to_string(),
-                        server.model_name.clone(),
-                        server.addr.clone(),
-                    ]);
+                for server in &server_list {
+                    model_width = model_width.max(server.model_name.len());
+                    addr_width = addr_width.max(server.addr.len());
                 }
-                println!("{table}");
+
+                // Print header
+                println!("{:<width_label$}  {:<width_model$}  {:<width_addr$}",
+                    "Label", "Model", "Address",
+                    width_label = label_width,
+                    width_model = model_width,
+                    width_addr = addr_width
+                );
+
+                // Print rows
+                for (index, server) in server_list.iter().enumerate() {
+                    let label = format!("#{}", index + 1);
+                    println!("{:<width_label$}  {:<width_model$}  {:<width_addr$}",
+                        label.bright_cyan(),
+                        server.model_name,
+                        server.addr,
+                        width_label = label_width,
+                        width_model = model_width,
+                        width_addr = addr_width
+                    );
+                }
+
+                println!();
+                println!("{} You can unregister services by index or address:",
+                    "💡".bright_yellow()
+                );
+                println!("  {} {}",
+                    "→".bright_blue(),
+                    "llmproxy unregister 1".bright_green()
+                );
+                println!("  {} {}",
+                    "→".bright_blue(),
+                    "llmproxy unregister localhost:8001".bright_green()
+                );
             }
         } else {
             handle_error_response(status, response).await?;

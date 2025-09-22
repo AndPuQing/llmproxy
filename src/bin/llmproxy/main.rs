@@ -20,13 +20,10 @@ enum Commands {
         #[arg(long, help = "Address of the model service (e.g., localhost:8001)")]
         addr: String,
     },
-    /// Unregister an existing model service by its address
+    /// Unregister an existing model service by index number or address
     Unregister {
-        #[arg(
-            long,
-            help = "Address of the model service to unregister (e.g., localhost:8001)"
-        )]
-        addr: String,
+        #[arg(help = "Service index (e.g., 1, 2, 3) or address (e.g., localhost:8001)")]
+        target: String,
     },
     /// List all registered model services
     List,
@@ -40,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command = args.command.clone();
     let result = match args.command {
         Commands::Register { model_name, addr } => client.register(model_name, addr).await,
-        Commands::Unregister { addr } => client.unregister(addr).await,
+        Commands::Unregister { target } => client.unregister(target).await,
         Commands::List => client.list().await,
     };
 
