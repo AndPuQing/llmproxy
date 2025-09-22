@@ -43,7 +43,11 @@ impl Client {
             .send()
             .await?;
 
-        handle_response(response, Some(&format!("Registered {} at {}", model_name, addr))).await
+        handle_response(
+            response,
+            Some(&format!("Registered {} at {}", model_name, addr)),
+        )
+        .await
     }
 
     pub async fn unregister(&self, target: String) -> Result<(), Box<dyn std::error::Error>> {
@@ -76,8 +80,12 @@ impl Client {
         handle_response(response, Some(&context)).await
     }
 
-    async fn resolve_index_to_address(&self, index_str: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let index: usize = index_str.parse()
+    async fn resolve_index_to_address(
+        &self,
+        index_str: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let index: usize = index_str
+            .parse()
             .map_err(|_| format!("Invalid index '{}'", index_str))?;
 
         if index == 0 {
@@ -103,8 +111,13 @@ impl Client {
                 "Index {} not found. Only {} service{} registered.",
                 index,
                 server_list.len(),
-                if server_list.len() == 1 { " is" } else { "s are" }
-            ).into());
+                if server_list.len() == 1 {
+                    " is"
+                } else {
+                    "s are"
+                }
+            )
+            .into());
         }
 
         Ok(server_list[index - 1].addr.clone())
@@ -119,16 +132,19 @@ impl Client {
         if status.is_success() {
             let server_list: Vec<ProxyServerInfo> = response.json().await?;
             if server_list.is_empty() {
-                println!("{} {}",
+                println!(
+                    "{} {}",
                     "ℹ".bright_blue().bold(),
                     "No model services are currently registered".bright_black()
                 );
-                println!("  {} Use {} to register a new service",
+                println!(
+                    "  {} Use {} to register a new service",
                     "→".bright_blue(),
                     "llmproxy register --model-name <MODEL> --addr <ADDRESS>".bright_green()
                 );
             } else {
-                println!("{} {} registered service{}",
+                println!(
+                    "{} {} registered service{}",
                     "✔".green().bold(),
                     server_list.len().to_string().bright_cyan(),
                     if server_list.len() == 1 { "" } else { "s" }
@@ -146,8 +162,11 @@ impl Client {
                 }
 
                 // Print header
-                println!("{:<width_label$}  {:<width_model$}  {:<width_addr$}",
-                    "Label", "Model", "Address",
+                println!(
+                    "{:<width_label$}  {:<width_model$}  {:<width_addr$}",
+                    "Label",
+                    "Model",
+                    "Address",
                     width_label = label_width,
                     width_model = model_width,
                     width_addr = addr_width
@@ -156,7 +175,8 @@ impl Client {
                 // Print rows
                 for (index, server) in server_list.iter().enumerate() {
                     let label = format!("#{}", index + 1);
-                    println!("{:<width_label$}  {:<width_model$}  {:<width_addr$}",
+                    println!(
+                        "{:<width_label$}  {:<width_model$}  {:<width_addr$}",
                         label.bright_cyan(),
                         server.model_name,
                         server.addr,
@@ -167,14 +187,17 @@ impl Client {
                 }
 
                 println!();
-                println!("{} You can unregister services by index or address:",
+                println!(
+                    "{} You can unregister services by index or address:",
                     "💡".bright_yellow()
                 );
-                println!("  {} {}",
+                println!(
+                    "  {} {}",
                     "→".bright_blue(),
                     "llmproxy unregister 1".bright_green()
                 );
-                println!("  {} {}",
+                println!(
+                    "  {} {}",
                     "→".bright_blue(),
                     "llmproxy unregister localhost:8001".bright_green()
                 );
@@ -199,7 +222,11 @@ async fn handle_response(
                 if let Some(ctx) = context {
                     println!("✔ {}", ctx.green().bold());
                     if !parsed_response.message.is_empty() && parsed_response.message != "OK" {
-                        println!("  {} {}", "→".bright_blue(), parsed_response.message.bright_black());
+                        println!(
+                            "  {} {}",
+                            "→".bright_blue(),
+                            parsed_response.message.bright_black()
+                        );
                     }
                 } else {
                     println!("✔ {}", parsed_response.message.green());
@@ -216,11 +243,7 @@ async fn handle_response(
             }
         }
     } else {
-        println!(
-            "✖ {} ({})",
-            parsed_response.message.red().bold(),
-            status
-        );
+        println!("✖ {} ({})", parsed_response.message.red().bold(), status);
     }
     Ok(())
 }
@@ -237,9 +260,15 @@ async fn handle_error_response(
     );
 
     if status == StatusCode::NOT_FOUND {
-        println!("  {} The requested endpoint may not exist", "→".bright_blue());
+        println!(
+            "  {} The requested endpoint may not exist",
+            "→".bright_blue()
+        );
     } else if status == StatusCode::INTERNAL_SERVER_ERROR {
-        println!("  {} The server encountered an internal error", "→".bright_blue());
+        println!(
+            "  {} The server encountered an internal error",
+            "→".bright_blue()
+        );
     } else if status.is_client_error() {
         println!("  {} Check your request parameters", "→".bright_blue());
     }

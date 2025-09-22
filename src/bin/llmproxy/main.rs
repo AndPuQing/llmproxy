@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
-use llmproxy::client::Client;
 use colored::*;
+use llmproxy::client::Client;
 
 const BASE_URL: &str = "http://127.0.0.1:11450";
 
@@ -53,33 +53,37 @@ fn handle_error(e: &Box<dyn std::error::Error>, command: &Commands) {
 
     if error_msg.contains("Connection refused")
         || error_msg.contains("connection")
-        || error_msg.contains("error sending request") {
-        eprintln!("{} {}",
+        || error_msg.contains("error sending request")
+    {
+        eprintln!(
+            "{} {}",
             "✖".red().bold(),
             "Cannot connect to llmproxyd server".red()
         );
-        eprintln!("  {} Make sure the server is running on {}",
+        eprintln!(
+            "  {} Make sure the server is running on {}",
             "→".bright_blue(),
             BASE_URL.bright_cyan()
         );
-        eprintln!("  {} Start it with: {}",
+        eprintln!(
+            "  {} Start it with: {}",
             "→".bright_blue(),
             "llmproxyd".bright_green()
         );
     } else if error_msg.contains("timeout") {
-        eprintln!("{} {}",
-            "✖".red().bold(),
-            "Request timed out".red()
-        );
-        eprintln!("  {} The server may be overloaded or unresponsive",
+        eprintln!("{} {}", "✖".red().bold(), "Request timed out".red());
+        eprintln!(
+            "  {} The server may be overloaded or unresponsive",
             "→".bright_blue()
         );
     } else if error_msg.contains("json") || error_msg.contains("parse") {
-        eprintln!("{} {}",
+        eprintln!(
+            "{} {}",
             "✖".red().bold(),
             "Invalid response from server".red()
         );
-        eprintln!("  {} Server may be incompatible or corrupted",
+        eprintln!(
+            "  {} Server may be incompatible or corrupted",
             "→".bright_blue()
         );
     } else {
@@ -89,13 +93,16 @@ fn handle_error(e: &Box<dyn std::error::Error>, command: &Commands) {
             Commands::List => "listing services",
         };
 
-        eprintln!("{} {} failed",
+        eprintln!(
+            "{} {} failed",
             "✖".red().bold(),
-            format!("{}{}", operation.chars().next().unwrap().to_uppercase(), &operation[1..]).red()
+            format!(
+                "{}{}",
+                operation.chars().next().unwrap().to_uppercase(),
+                &operation[1..]
+            )
+            .red()
         );
-        eprintln!("  {} {}",
-            "→".bright_blue(),
-            error_msg.bright_red()
-        );
+        eprintln!("  {} {}", "→".bright_blue(), error_msg.bright_red());
     }
 }
