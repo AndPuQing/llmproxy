@@ -143,14 +143,6 @@ impl Client {
                     "llmproxy register --model-name <MODEL> --addr <ADDRESS>".bright_green()
                 );
             } else {
-                println!(
-                    "{} {} registered service{}",
-                    "✔".green().bold(),
-                    server_list.len().to_string().bright_cyan(),
-                    if server_list.len() == 1 { "" } else { "s" }
-                );
-                println!();
-
                 // Calculate column widths
                 let label_width = 5; // "Label"
                 let mut model_width = 5; // "Model"
