@@ -27,6 +27,11 @@ enum Commands {
     },
     /// List all registered model services
     List,
+    /// Test a registered model service by ID
+    Test {
+        #[arg(help = "Service ID (e.g., 1, 2, 3) or address (e.g., localhost:8001)")]
+        id: String,
+    },
 }
 
 #[tokio::main]
@@ -39,6 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Register { model_name, addr } => client.register(model_name, addr).await,
         Commands::Unregister { target } => client.unregister(target).await,
         Commands::List => client.list().await,
+        Commands::Test { id } => client.test(id).await,
     };
 
     if let Err(e) = result {
@@ -91,6 +97,7 @@ fn handle_error(e: &dyn std::error::Error, command: &Commands) {
             Commands::Register { .. } => "registration",
             Commands::Unregister { .. } => "unregistration",
             Commands::List => "listing services",
+            Commands::Test { .. } => "testing service",
         };
 
         eprintln!(

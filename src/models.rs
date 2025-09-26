@@ -34,3 +34,10 @@ pub struct ProxyServerInfo {
     pub model_name: String,
     pub addr: String,
 }
+
+
+/// Represents the payload for testing a model server.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TestRequest {
+    pub addr: String,
+}

@@ -1,5 +1,6 @@
 use crate::models::{
     ModelExtractPayload, ProxyServerInfo, RegisterRequest, ResponseStatus, ServerResponse,
+    TestRequest,
 };
 use axum::{
     extract::{Request, State},
@@ -52,7 +53,8 @@ fn app(state: AppState) -> Router {
         .route("/register", post(register_server))
         .route("/unregister", post(unregister_server))
         .route("/health", get(|| async { "OK" }))
-        .route("/list", get(list_servers));
+        .route("/list", get(list_servers))
+        .route("/test", post(test_server));
 
     let proxy_router = Router::new().fallback(proxy_request_handler);
 
@@ -355,6 +357,62 @@ async fn list_servers(State(state): State<AppState>) -> impl IntoResponse {
         })
         .collect();
     Json(server_list_display)
+}
+
+async fn test_server(
+    State(state): State<AppState>,
+    Json(payload): Json<TestRequest>,
+) -> impl IntoResponse {
+    let servers = state.servers.lock().await;
+
+    let server_addr = payload.addr.trim().to_string();
+
+    if let Some(_server) = servers.iter().find(|s| s.addr == server_addr) {
+        let uri = format!("http://{}/health", server_addr)
+            .parse::<Uri>()
+            .expect("Failed to parse URI");
+
+        match state.http_client.get(uri).await {
+            Ok(response) => {
+                if response.status().is_success() {
+                    (
+                        StatusCode::OK,
+                        Json(ServerResponse {
+                            status: ResponseStatus::Success,
+                            message: format!("Service at {} is reachable", server_addr),
+                        }),
+                    )
+                } else {
+                    (
+                        StatusCode::OK,
+                        Json(ServerResponse {
+                            status: ResponseStatus::Error,
+                            message: format!(
+                                "Service at {} returned status {}",
+                                server_addr,
+                                response.status()
+                            ),
+                        }),
+                    )
+                }
+            }
+            Err(e) => (
+                StatusCode::OK,
+                Json(ServerResponse {
+                    status: ResponseStatus::Error,
+                    message: format!("Failed to connect to service at {}: {}", server_addr, e),
+                }),
+            ),
+        }
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ServerResponse {
+                status: ResponseStatus::Error,
+                message: "Service not found".to_string(),
+            }),
+        )
+    }
 }
 
 #[cfg(test)]

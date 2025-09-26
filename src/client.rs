@@ -1,4 +1,6 @@
-use crate::models::{ProxyServerInfo, RegisterRequest, ResponseStatus, ServerResponse};
+use crate::models::{
+    ProxyServerInfo, RegisterRequest, ResponseStatus, ServerResponse, TestRequest,
+};
 use colored::*;
 use reqwest::Client as ReqwestClient;
 use reqwest::StatusCode;
@@ -198,6 +200,26 @@ impl Client {
             handle_error_response(status, response).await?;
         }
         Ok(())
+    }
+    pub async fn test(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        self.check_server_status().await?;
+        let actual_addr = if id.parse::<usize>().is_ok() {
+            self.resolve_index_to_address(&id).await?
+        } else {
+            id.clone()
+        };
+
+        let url = format!("{}/test", self.base_url);
+        let response = self
+            .http_client
+            .post(&url)
+            .json(&TestRequest {
+                addr: actual_addr.clone(),
+            })
+            .send()
+            .await?;
+
+        handle_response(response, None).await
     }
 }
 
